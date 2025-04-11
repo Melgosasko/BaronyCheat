@@ -35,6 +35,7 @@ class BaronyHack:
             'appraisal': (0xC, False),
             'swimming': (0x10, False),
             'leadership': (0x14, False),
+            'casting': (0x18, False),
             'magic': (0x1C, False),
             'ranged': (0x20, False),
             'swords': (0x24, False),
@@ -52,7 +53,7 @@ class BaronyHack:
 
     def setup_gui(self):
         self.root = tk.Tk()
-        self.root.title("Barony Cheat By MelgosaSko 1.0")
+        self.root.title("Barony Cheat 1.1")
         self.root.geometry("1000x800")
 
         # Status Bar
@@ -157,6 +158,7 @@ class BaronyHack:
             ("Оценка", 'appraisal'),
             ("Плавание", 'swimming'),
             ("Лидерство", 'leadership'),
+            ("Колдовство", 'casting'),
             ("Магия", 'magic'),
             ("Дальний бой", 'ranged'),
             ("Мечи", 'swords'),
@@ -218,15 +220,26 @@ class BaronyHack:
         except:
             return 0
 
+    def write_value(self, field, value):
+        try:
+            if field == 'skybox':
+                return self.write_skybox(value)
+            
+            offset, is_string = self.offsets[field]
+            addr = self.get_current_address() + offset
+            if is_string:
+                self.pm.write_string(addr, value)
+            else:
+                self.pm.write_int(addr, int(value))
+            return True
+        except Exception as e:
+            messagebox.showerror("Ошибка", f"Ошибка записи {field}: {str(e)}")
+            return False
+
     def write_skybox(self, value):
         try:
-            # Получаем базовый адрес игры
             base = self.pm.base_address
-        
-            # Вычисляем абсолютный адрес: barony.exe + C21090 + 48
             skybox_addr = base + 0xC21090 + 0x48
-        
-            # Записываем значение напрямую
             self.pm.write_int(skybox_addr, int(value))
             return True
         except Exception as e:
@@ -247,20 +260,11 @@ class BaronyHack:
     def update_field(self, field):
         entry = getattr(self, f"{field}_entry")
         value = entry.get()
-        if self.write_value(field, value):
-            messagebox.showinfo("Успех", "Значение обновлено!")
+        self.write_value(field, value)
 
     def update_skybox(self):
-        try:
-            value = int(self.skybox_entry.get())
-            base = self.pm.base_address
-            skybox_addr = base + 0xC21090 + 0x48
-            self.pm.write_int(skybox_addr, value)
-            messagebox.showinfo("Успех", "Скайбокс успешно изменен!")
-        except ValueError:
-            messagebox.showerror("Ошибка", "Введите целое число!")
-        except Exception as e:
-            messagebox.showerror("Ошибка", f"Ошибка: {str(e)}")
+        value = int(self.skybox_entry.get())
+        self.write_skybox(value)
 
     def on_player_change(self, event):
         self.current_player = self.player_selector.current()
